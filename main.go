@@ -1,49 +1,82 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
 
-	"github.com/alireza0/s-ui/app"
-	"github.com/alireza0/s-ui/cmd"
+	"github.com/op/go-logging"
 )
 
-func runApp() {
-	app := app.NewApp()
+var (
+	// Version is set at build time via ldflags
+	Version  = "0.0.1"
+	// BuildTime is set at build time via ldflags
+	BuildTime = "unknown"
+)
 
-	err := app.Init()
-	if err != nil {
-		log.Fatal(err)
+func main() {
+	// Parse command-line flags
+	var (
+		showVersion = flag.Bool("version", false, "Print version information and exit")
+		configFile  = flag.String("config", "", "Path to configuration file")
+		logLevel    = flag.String("log-level", "info", "Log level: debug, info, warning, error")
+	)
+	flag.Parse()
+
+	// Handle version flag
+	if *showVersion {
+		fmt.Printf("s-ui version %s (built %s)\n", Version, BuildTime)
+		os.Exit(0)
 	}
 
-	err = app.Start()
+	// Initialize logger
+	logger := setupLogger(*logLevel)
+	logger.Infof("Starting s-ui %s", Version)
+
+	// Load configuration
+	cfg, err := loadConfig(*configFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	sigCh := make(chan os.Signal, 1)
-	// Trap shutdown signals
-	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM)
-	for {
-		sig := <-sigCh
+	// Initialize and start the application
+	app, err := NewApp(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize application: %v", err)
+	}
 
-		switch sig {
-		case syscall.SIGHUP:
-			app.RestartApp()
-		default:
-			app.Stop()
-			return
-		}
+	if err := app.Start(); err != nil {
+		log.Fatalf("Application error: %v", err)
 	}
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		runApp()
-		return
-	} else {
-		cmd.ParseCmd()
+// setupLogger configures the application logger with the given level.
+func setupLogger(level string) *logging.Logger {
+	logger := logging.MustGetLogger("s-ui")
+
+	backend := logging.NewLogBackend(os.Stdout, "", 0)
+	format := logging.MustStringFormatter(
+		`%{color}%{time:2006-01-02 15:04:05} %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+	)
+	backendFormatter := logging.NewBackendFormatter(backend, format)
+
+	var lvl logging.Level
+	switch level {
+	case "debug":
+		lvl = logging.DEBUG
+	case "warning":
+		lvl = logging.WARNING
+	case "error":
+		lvl = logging.ERROR
+	default:
+		lvl = logging.INFO
 	}
+
+	backendLeveled := logging.AddModuleLevel(backendFormatter)
+	backendLeveled.SetLevel(lvl, "")
+	logging.SetBackend(backendLeveled)
+
+	return logger
 }

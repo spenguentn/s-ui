@@ -21,7 +21,8 @@ func main() {
 	var (
 		showVersion = flag.Bool("version", false, "Print version information and exit")
 		configFile  = flag.String("config", "", "Path to configuration file")
-		logLevel    = flag.String("log-level", "info", "Log level: debug, info, warning, error")
+		// Changed default log level to debug for easier local development
+		logLevel    = flag.String("log-level", "debug", "Log level: debug, info, warning, error")
 	)
 	flag.Parse()
 

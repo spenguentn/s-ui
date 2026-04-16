@@ -12,7 +12,7 @@ const (
 	DefaultDBPath      = "db/s-ui.db"
 	DefaultLogLevel    = "info"
 	DefaultLogFile     = ""
-	DefaultLogMaxSize  = 10 // MB
+	DefaultLogMaxSize  = 50 // MB - increased from 10 to avoid frequent log rotation
 )
 
 // Config holds the application configuration

@@ -60,8 +60,9 @@ func setupLogger(level string) *logging.Logger {
 	backend := logging.NewLogBackend(os.Stdout, "", 0)
 	// Updated timestamp format to include milliseconds for easier debugging
 	// Also added shortfile info to help trace log sources during development
+	// Removed %{id:03x} token — I find it clutters the output without adding value
 	format := logging.MustStringFormatter(
-		`%{color}%{time:2006-01-02 15:04:05.000} %{level:.4s} %{id:03x}%{color:reset} %{shortfile} %{message}`,
+		`%{color}%{time:2006-01-02 15:04:05.000} %{level:.4s}%{color:reset} %{shortfile} %{message}`,
 	)
 	backendFormatter := logging.NewBackendFormatter(backend, format)
 

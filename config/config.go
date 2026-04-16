@@ -1,68 +1,76 @@
 package config
 
 import (
-	_ "embed"
-	"fmt"
 	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
+	"strconv"
 )
 
-//go:embed version
-var version string
-
-//go:embed name
-var name string
-
-type LogLevel string
-
+// Default configuration values
 const (
-	Debug LogLevel = "debug"
-	Info  LogLevel = "info"
-	Warn  LogLevel = "warn"
-	Error LogLevel = "error"
+	DefaultPort        = 2095
+	DefaultWebBasePath = "/"
+	DefaultDBPath      = "db/s-ui.db"
+	DefaultLogLevel    = "info"
+	DefaultLogFile     = ""
+	DefaultLogMaxSize  = 10 // MB
 )
 
-func GetVersion() string {
-	return strings.TrimSpace(version)
+// Config holds the application configuration
+type Config struct {
+	// Server settings
+	Port        int
+	WebBasePath string
+
+	// Database settings
+	DBPath string
+
+	// Logging settings
+	LogLevel   string
+	LogFile    string
+	LogMaxSize int
+
+	// Security settings
+	SecretKey string
 }
 
-func GetName() string {
-	return strings.TrimSpace(name)
-}
-
-func GetLogLevel() LogLevel {
-	if IsDebug() {
-		return Debug
+// GetConfig returns the application configuration, reading from environment
+// variables with fallback to default values.
+func GetConfig() *Config {
+	return &Config{
+		Port:        getEnvInt("SUI_PORT", DefaultPort),
+		WebBasePath: getEnvStr("SUI_WEB_BASE_PATH", DefaultWebBasePath),
+		DBPath:      getEnvStr("SUI_DB_PATH", DefaultDBPath),
+		LogLevel:    getEnvStr("SUI_LOG_LEVEL", DefaultLogLevel),
+		LogFile:     getEnvStr("SUI_LOG_FILE", DefaultLogFile),
+		LogMaxSize:  getEnvInt("SUI_LOG_MAX_SIZE", DefaultLogMaxSize),
+		SecretKey:   getEnvStr("SUI_SECRET_KEY", ""),
 	}
-	logLevel := os.Getenv("SUI_LOG_LEVEL")
-	if logLevel == "" {
-		return Info
+}
+
+// getEnvStr retrieves a string environment variable or returns a default value.
+func getEnvStr(key, defaultVal string) string {
+	if val, exists := os.LookupEnv(key); exists {
+		return val
 	}
-	return LogLevel(logLevel)
+	return defaultVal
 }
 
-func IsDebug() bool {
-	return os.Getenv("SUI_DEBUG") == "true"
-}
-
-func GetDBFolderPath() string {
-	dbFolderPath := os.Getenv("SUI_DB_FOLDER")
-	if dbFolderPath == "" {
-		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-		if err != nil {
-			// Cross-platform fallback path
-			if runtime.GOOS == "windows" {
-				return "C:\\Program Files\\s-ui\\db"
-			}
-			return "/usr/local/s-ui/db"
+// getEnvInt retrieves an integer environment variable or returns a default value.
+func getEnvInt(key string, defaultVal int) int {
+	if val, exists := os.LookupEnv(key); exists {
+		if intVal, err := strconv.Atoi(val); err == nil {
+			return intVal
 		}
-		dbFolderPath = filepath.Join(dir, "db")
 	}
-	return dbFolderPath
+	return defaultVal
 }
 
-func GetDBPath() string {
-	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
+// GetVersion returns the current application version.
+func GetVersion() string {
+	return "0.0.1"
+}
+
+// IsDebug returns true if the application is running in debug mode.
+func IsDebug() bool {
+	return getEnvStr("SUI_DEBUG", "false") == "true"
 }

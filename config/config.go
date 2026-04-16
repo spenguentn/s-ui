@@ -56,6 +56,8 @@ func getEnvStr(key, defaultVal string) string {
 }
 
 // getEnvInt retrieves an integer environment variable or returns a default value.
+// If the environment variable is set but cannot be parsed as an integer, the
+// default value is used and no error is raised.
 func getEnvInt(key string, defaultVal int) int {
 	if val, exists := os.LookupEnv(key); exists {
 		if intVal, err := strconv.Atoi(val); err == nil {
@@ -71,6 +73,8 @@ func GetVersion() string {
 }
 
 // IsDebug returns true if the application is running in debug mode.
+// Can also be enabled by setting SUI_DEBUG=1.
 func IsDebug() bool {
-	return getEnvStr("SUI_DEBUG", "false") == "true"
+	val := getEnvStr("SUI_DEBUG", "false")
+	return val == "true" || val == "1"
 }
